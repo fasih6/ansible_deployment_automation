@@ -1,7 +1,7 @@
 # Ansible_deployment_automation
 
 
-## 🎯 What This Project Does (High Level)
+## 🎯 What This Project Does
 
 This project automates the deployment of a Java Spring Boot application:
 1. Takes source code from GitHub
