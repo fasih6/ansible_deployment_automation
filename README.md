@@ -136,8 +136,8 @@ YOU (Developer)
         ┌─────────────────────────────────────────┐
         │  SUBSTEP 4.4: Clone Git Repository      │
         ├─────────────────────────────────────────┤
-        │  URL: github.com/jaiswaladi246/Boardgame│
-        │  Destination: /home/ubuntu/Boardgame    │
+        │  URL: github.com/fasih6/boardgame│
+        │  Destination: /home/ubuntu/boardgame    │
         │  Branch: main                           │
         │                                         │
         │  If repo exists: git pull (update)      │
@@ -175,21 +175,21 @@ YOU (Developer)
         │     [Credentials hidden in logs]        │
         │                                         │
         │  2. Build Docker image                  │
-        │     docker build -t adijaiswal/board... │
+        │     docker build -t fasih6/board... │
         │     Location: /home/ubuntu/Boardgame    │
         │     Uses: Dockerfile in the repo        │
         │                                         │
         │  3. Tag image                           │
-        │     adijaiswal/board:latest             │
+        │     fasih6/board:latest             │
         └─────────────────────────────────────────┘
                               ↓
         ┌─────────────────────────────────────────┐
         │  SUBSTEP 4.7: Push to Docker Hub        │
         ├─────────────────────────────────────────┤
-        │  docker push adijaiswal/board:latest    │
+        │  docker push fasih6/board:latest    │
         │                                         │
         │  Image is now available publicly at:    │
-        │  hub.docker.com/r/adijaiswal/board      │
+        │  hub.docker.com/r/fasih6/board      │
         └─────────────────────────────────────────┘
                               ↓
         ┌─────────────────────────────────────────┐
@@ -208,8 +208,8 @@ YOU (Developer)
 ├─────────────────────────────────────────────────────────────────┤
 │  Display deployment summary:                                    │
 │    ✓ Deployment completed successfully!                        │
-│    ✓ Docker image: adijaiswal/board:latest                     │
-│    ✓ Repository: github.com/jaiswaladi246/Boardgame           │
+│    ✓ Docker image: fasih6/board:latest                     │
+│    ✓ Repository: github.com/fasih6/boardgame           │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
