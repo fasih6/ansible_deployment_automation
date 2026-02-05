@@ -14,31 +14,110 @@ All of this happens automatically on your AWS EC2 instances!
 ---
 
 ## 📋 Complete Flow: Step-by-Step
-
-### Phase 1: Prerequisites & Setup (One-Time)
-
+## Project Structure
 ```
-YOU (Developer)
-    │
-    ├─→ Create AWS EC2 instances
-    │   └─→ Tag them: Environment=dev, Role=web
-    │
-    ├─→ Configure AWS credentials on your laptop
-    │   └─→ aws configure (or export AWS keys)
-    │
-    ├─→ Install Ansible on your laptop
-    │   └─→ pip install ansible
-    │
-    ├─→ Install dependencies
-    │   └─→ make install (or run commands manually)
-    │
-    └─→ Create vault.yaml with Docker credentials
-        └─→ ansible-vault create vault.yaml
+.
+├── ansible.cfg                          # Ansible configuration
+├── vault.yaml                           # Encrypted credentials (ansible-vault)
+├── site.yaml                            # Main playbook
+├── group_vars/
+│   └── all.yaml                        # Global variables
+├── inventory/
+│   └── aws_ec2.yaml                    # Dynamic AWS EC2 inventory
+└── roles/
+    └── deploy_app/
+        ├── tasks/
+        │   └── main.yaml               # Main deployment tasks
+        ├── handlers/
+        │   └── main.yaml               # Event handlers
+        └── templates/
+            └── maven.sh.j2             # Maven environment template
+```
+
+## Prerequisites
+
+### Required Software
+- Ansible 2.9+
+- Python 3.8+
+- AWS CLI configured with appropriate credentials
+- Ansible collections:
+  ```bash
+  ansible-galaxy collection install amazon.aws
+  ansible-galaxy collection install community.docker
+  ```
+
+### AWS Requirements
+- EC2 instances tagged with:
+  - `Environment: dev`
+  - `Role: web`
+- Security group allowing SSH (port 22)
+- EC2 instances running Ubuntu
+- SSH key pair for instance access
+
+## Setup Instructions
+
+### 1. Create Vault File
+```bash
+ansible-vault create vault.yaml
+```
+
+Add the following content:
+```yaml
+docker_username: your_dockerhub_username
+docker_password: your_dockerhub_password
+```
+
+### 2. Configure AWS Credentials
+Ensure AWS credentials are configured:
+```bash
+aws configure
+# or set environment variables:
+export AWS_ACCESS_KEY_ID=your_access_key
+export AWS_SECRET_ACCESS_KEY=your_secret_key
+export AWS_DEFAULT_REGION=us-east-1
+```
+
+### 3. Test Inventory
+```bash
+ansible-inventory -i inventory/aws_ec2.yaml --graph
+```
+
+### 4. Run Playbook
+```bash
+# Full deployment
+ansible-playbook site.yaml --ask-vault-pass
+
+# With SSH key
+ansible-playbook site.yaml --key-file ~/.ssh/your-key.pem --ask-vault-pass
+
+# Run specific tags only
+ansible-playbook site.yaml --ask-vault-pass --tags "setup,deploy"
+
+# Dry run (check mode)
+ansible-playbook site.yaml --ask-vault-pass --check
+```
+
+## Available Tags
+
+- `setup` - System setup and package installation
+- `packages` - Install required packages
+- `maven` - Maven installation and configuration
+- `docker` - Docker configuration
+- `git` - Git repository operations
+- `build` - Maven build process
+- `deploy` - Full deployment (build + docker)
+- `cleanup` - Clean up old Docker images
+
+### Example Tag Usage
+```bash
+# Only setup and Maven installation
+ansible-playbook site.yaml --ask-vault-pass --tags "setup,maven"
+
 ```
 
 ---
 
-### Phase 2: Execution Flow (When You Run `make deploy`)
+### Execution Flow (When You Run `make deploy`)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -260,34 +339,6 @@ roles/deploy_app/
 ├─→ tasks/main.yaml (the actual work)
 ├─→ handlers/main.yaml (reactions to changes)
 └─→ templates/maven.sh.j2 (config file template)
-```
-
----
-
-## 🎮 Control Flow (Decision Making)
-
-```
-For each EC2 instance:
-    
-    Is Maven installed?
-    ├─→ YES: Skip installation
-    └─→ NO:  Download & install
-    
-    Does Git repo exist?
-    ├─→ YES: git pull (update)
-    └─→ NO:  git clone (new)
-    
-    Did Maven build succeed?
-    ├─→ YES: Continue to Docker
-    └─→ NO:  Show error & STOP
-    
-    Did Docker build succeed?
-    ├─→ YES: Push to Docker Hub
-    └─→ NO:  Show error & STOP
-    
-    Were new images created?
-    ├─→ YES: Prune old images
-    └─→ NO:  Skip cleanup
 ```
 
 ---
