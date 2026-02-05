@@ -1,0 +1,41 @@
+# Ansible
+*.retry
+.vault_pass
+vault.yaml
+vault.yml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Cache
+/tmp/
+*.cache
+/ansible_facts/
+
+# AWS
+.aws/
+*.pem
+
+# Local inventory cache
+/tmp/aws_ec2_inventory_cache/

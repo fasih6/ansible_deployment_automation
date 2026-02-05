@@ -1,0 +1,7 @@
+# This is an example vault file
+# Create your actual vault file with:
+# ansible-vault create vault.yaml
+
+# Then add the following content (use your actual credentials):
+docker_username: your_dockerhub_username
+docker_password: your_dockerhub_password

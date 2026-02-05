@@ -1,0 +1,29 @@
+# Application Configuration
+git_repo_url: "https://github.com/fasih6/boardgame.git"
+git_branch: "main"
+repo_dir: "/home/ubuntu/boardgame"
+
+# Docker Configuration
+docker_image_name: "fasih6/board1"
+docker_tag: "latest"
+
+# Java Configuration
+java_version: "17"
+java_home: "/usr/lib/jvm/java-17-openjdk-amd64"
+
+# Maven Configuration
+maven_version: "3.8.7"
+maven_home: "/opt/apache-maven-{{ maven_version }}"
+maven_url: "https://archive.apache.org/dist/maven/maven-3/{{ maven_version }}/binaries/apache-maven-{{ maven_version }}-bin.tar.gz"
+
+
+# System Configuration
+app_user: "ubuntu"
+required_packages:
+  - openjdk-17-jdk
+  - git
+  - curl
+  - python3-pip
+
+# Docker Python SDK (required for docker modules)
+##################################33

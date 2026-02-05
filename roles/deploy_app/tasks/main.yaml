@@ -1,0 +1,190 @@
+---
+# ========================================
+# System Setup Tasks
+# ========================================
+
+- name: Install required system packages
+  apt:
+    name: "{{ required_packages }}"
+    state: present
+    update_cache: yes
+  tags: [setup, packages]
+
+- name: Install Python packages for Docker modules
+  apt:
+    name:
+      - python3-docker
+      - python3-requests
+    state: present
+  tags: [setup, docker]
+
+# ========================================
+# Maven Installation
+# ========================================
+
+- name: Check if Maven is already installed
+  stat:
+    path: "{{ maven_home }}/bin/mvn"
+  register: maven_installed
+  tags: [maven, setup]
+
+- name: Install Maven
+  when: not maven_installed.stat.exists
+  block:
+    - name: Download and extract Maven {{ maven_version }}
+      unarchive:
+        src: "{{ maven_url }}"
+        dest: /opt/
+        remote_src: yes
+        creates: "{{ maven_home }}"
+      
+    - name: Configure Maven environment variables
+      template:
+        src: maven.sh.j2
+        dest: /etc/profile.d/maven.sh
+        mode: '0755'
+      
+    - name: Source Maven environment (for current session)
+      shell: source /etc/profile.d/maven.sh
+      args:
+        executable: /bin/bash
+      changed_when: false
+  tags: [maven, setup]
+
+# ========================================
+# Docker Configuration
+# ========================================
+
+- name: Install Docker
+  apt:
+    name: docker.io
+    state: present
+    update_cache: yes
+  tags: [docker, setup]
+
+- name: Ensure Docker service is running
+  service:
+    name: docker
+    state: started
+    enabled: true
+  tags: [docker]
+
+- name: Add {{ app_user }} to docker group
+  user:
+    name: "{{ app_user }}"
+    groups: docker
+    append: yes
+  tags: [docker]
+  notify: reset ssh connection
+
+# ========================================
+# Application Deployment
+# ========================================
+
+- name: Clone or update Git repository
+  git:
+    repo: "{{ git_repo_url }}"
+    dest: "{{ repo_dir }}"
+    version: "{{ git_branch }}"
+    update: yes
+    force: yes
+  become_user: "{{ app_user }}"
+  register: git_result
+  tags: [git, deploy]
+
+- name: Display git clone/update status
+  debug:
+    msg: "Repository {{ 'updated' if git_result.changed else 'already up to date' }}"
+  tags: [git, deploy]
+
+# ========================================
+# Maven Build
+# ========================================
+
+- name: Build Maven project
+  shell: |
+    source /etc/profile.d/maven.sh
+    mvn clean package -DskipTests
+  args:
+    chdir: "{{ repo_dir }}"
+    executable: /bin/bash
+  environment:
+    JAVA_HOME: "{{ java_home }}"
+    M2_HOME: "{{ maven_home }}"
+    PATH: "{{ java_home }}/bin:{{ maven_home }}/bin:{{ ansible_env.PATH }}"
+  become_user: "{{ app_user }}"
+  register: maven_result
+  failed_when: maven_result.rc != 0
+  tags: [maven, build, deploy]
+
+- name: Display Maven build output
+  debug:
+    var: maven_result.stdout_lines
+  when: maven_result.rc != 0 or ansible_verbosity >= 1
+  tags: [maven, build, deploy]
+
+- name: Display Maven errors if build failed
+  debug:
+    var: maven_result.stderr_lines
+  when: maven_result.rc != 0
+  tags: [maven, build, deploy]
+
+# ========================================
+# Docker Operations
+# ========================================
+
+- name: Log in to Docker Hub
+  community.docker.docker_login:
+    username: "{{ docker_username }}"
+    password: "{{ docker_password }}"
+    state: present
+  no_log: true
+  tags: [docker, deploy]
+
+- name: Build Docker image
+  community.docker.docker_image:
+    name: "{{ docker_image_name }}"
+    tag: "{{ docker_tag }}"
+    source: build
+    build:
+      path: "{{ repo_dir }}"
+      pull: yes
+    state: present
+    force_source: yes
+  register: docker_build
+  tags: [docker, build, deploy]
+
+- name: Display Docker build status
+  debug:
+    msg: "Docker image {{ 'rebuilt' if docker_build.changed else 'already exists' }}"
+  tags: [docker, build, deploy]
+
+- name: Push Docker image to registry
+  community.docker.docker_image:
+    name: "{{ docker_image_name }}"
+    tag: "{{ docker_tag }}"
+    push: true
+    source: local
+  register: docker_push
+  tags: [docker, deploy]
+
+- name: Display Docker push status
+  debug:
+    msg: "Docker image pushed successfully to {{ docker_image_name }}:{{ docker_tag }}"
+  when: docker_push.changed
+  tags: [docker, deploy]
+
+- name: Log out from Docker Hub
+  community.docker.docker_login:
+    state: absent
+  tags: [docker, deploy]
+
+# ========================================
+# Cleanup (Optional)
+# ========================================
+
+- name: Clean up old Docker images
+  shell: docker image prune -f
+  when: docker_build.changed
+  tags: [docker, cleanup]
+  ignore_errors: yes
